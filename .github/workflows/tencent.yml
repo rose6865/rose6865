@@ -1,0 +1,79 @@
+#此工作流将构建一个码头集装箱,发布并部署到腾讯库伯内特斯引擎(TKE)当有一个"主"分支的推动。
+#
+#以配置此工作流程:
+#
+#1确保您的存储库包含腾讯库伯内特斯引擎集群的必要配置,
+#包括部署。YML,库口注射。YML,服务。YML等。
+#
+#2在你的工作区设置秘密:
+#-腾讯云与腾讯云的秘密标识
+#-腾讯云密匙与腾讯云密匙
+#-腾讯云帐户
+#-带有TKE注册处密码的T_注册密码
+#
+#3改变TK_VASE_UL、TK_区域、TK_集群和部署环境变量的值(见下图)。
+
+姓名 :姓名:腾讯·库伯内特斯发动机
+
+ 在…上    :
+  推动      :
+    分枝                  : [    分枝 : [                  "main"                 ]               "main"               ]
+
+#本工作流中所有作业和步骤均可利用的环境变量
+ 环境            :
+  Tke_芬_url           :              网站/演示/网址应用程序
+  Tke_区域          :             亚太-广州
+  Tke_俱乐部_d         :            链接 :
+  部署_名称        :           部署_名称 : 测试
+
+ 准许      :
+  目录     :        内容 : 改为
+
+ 乔布斯   :
+  setup-build-publish-deploy   :
+    姓名             :                  名称 : 设置、构建、发布和部署
+    逃跑            :                 最新运行 :
+    环境           :                环境 : 生产
+    台阶          :
+
+    - 姓名        :             名称 : 结账
+      使用       :              用途 : 操作/结账@v3
+
+    #建造# Build
+    - 姓名      :           -名称 : 建立码头者形象
+      跑     : |
+        docker build -t ${TKE_IMAGE_URL}:${GITHUB_SHA} .
+
+    - 姓名    :         -名称 : 登入TKE注册处
+      跑  : |
+        docker login -u ${{ secrets.TENCENT_CLOUD_ACCOUNT_ID }} -p '${{ secrets.TKE_REGISTRY_PASSWORD }}' ${TKE_IMAGE_URL}
+
+    #将码头工人的影像转到TKE注册
+    -        姓名        :             名称 : 发布
+      跑        : |
+        docker push ${TKE_IMAGE_URL}:${GITHUB_SHA}
+
+    - 姓名        :             -名称 : 建立 "库斯塔兹"
+      跑       : |
+        库尔-O库斯特瑞兹----位置HTPS://giuub.com/库伯涅茨-西格尔斯/库斯特瑞兹/释放/下载/V3.1.0/库斯特瑞泽_3.1.01林努xamd64
+        切德杜+X。/库斯塔夫化
+
+    - 姓名      :           名称 : 设置~/。连接TKE集群的库贝/配置
+      使用     :          使用   : TencentCloud/tke-cluster-credential-action@v1
+      with:
+        secret_id: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
+        secret_key: ${{ secrets.TENCENT_CLOUD_SECRET_KEY }}
+        tke_region: ${{ env.TKE_REGION }}
+        cluster_id: ${{ env.TKE_CLUSTER_ID }}
+
+    - name: Switch to TKE context
+      run: |
+        kubectl config use-context ${TKE_CLUSTER_ID}-context-default
+
+    # Deploy the Docker image to the TKE cluster
+    - name: Deploy
+      run: |
+        ./kustomize edit set image ${TKE_IMAGE_URL}:${GITHUB_SHA}
+        ./kustomize build . | kubectl apply -f -
+        kubectl rollout status deployment/${DEPLOYMENT_NAME}
+        kubectl get services -o wide
